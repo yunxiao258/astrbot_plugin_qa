@@ -1,0 +1,47 @@
+{
+  "qa_enable": {
+    "description": "是否启用自动问答回复（总开关）",
+    "type": "bool",
+    "default": true
+  },
+  "qa_match_mode": {
+    "description": "问题匹配模式：exact 精确匹配（消息与问题完全相同）/ contains 包含匹配（问题出现在消息中）",
+    "type": "string",
+    "default": "contains"
+  },
+  "qa_min_length": {
+    "description": "问题最短长度，防止过短问题误触发回复",
+    "type": "int",
+    "default": 2
+  },
+  "qa_reply_mode": {
+    "description": "多条问答命中时的回复模式：first 取第一条 / random 随机取一条",
+    "type": "string",
+    "default": "random"
+  },
+  "qa_cooldown_seconds": {
+    "description": "同会话内命中同一问题的回复间隔（秒），防止刷屏",
+    "type": "int",
+    "default": 10
+  },
+  "qa_admin_only_manage": {
+    "description": "添加/删除/清空问答是否仅限管理员（event.role == admin 或 admin_umos 白名单）",
+    "type": "bool",
+    "default": true
+  },
+  "admin_umos": {
+    "description": "管理员会话 UMO 白名单，多个用英文逗号分隔，如 default:GroupMessage:1234567890；匹配管理员时 role 与白名单任一命中即可",
+    "type": "string",
+    "default": ""
+  },
+  "qa_global_shared": {
+    "description": "是否全局共享同一份问答库（默认按会话/群隔离）",
+    "type": "bool",
+    "default": false
+  },
+  "qa_max_per_session": {
+    "description": "每个会话允许的最大问答条数，超出拒绝添加",
+    "type": "int",
+    "default": 100
+  }
+}

@@ -1,0 +1,9 @@
+name: astrbot_plugin_qa
+display_name: 自定义问答
+desc: 自定义问答：关键词自动回复
+help: |
+  发送「/问答 添加 <问题> = <答案>」添加问答；「/问答 删 <编号>」「/问答 列表」「/问答 清空」管理问答。
+  添加后，会话内任意消息命中问题将自动回复对应答案。支持精确/包含匹配、多条命中 first/random、冷却防刷等。
+version: 1.0.0
+author: 云晓
+repo: https://github.com/yunxiao258/astrbot_plugin_qa
