@@ -153,8 +153,10 @@ class QaPlugin(Star):
         """保存问答库到磁盘，失败仅告警不影响运行"""
         try:
             os.makedirs(self.data_dir, exist_ok=True)
-            with open(self._data_file(), "w", encoding="utf-8") as f:
+            tmp = self._data_file() + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
                 json.dump({"data": self._data}, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, self._data_file())
         except OSError as e:
             logger.warning("【%s】保存问答数据失败: %s", PLUGIN_NAME, e)
 
