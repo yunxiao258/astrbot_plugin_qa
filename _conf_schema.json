@@ -5,9 +5,19 @@
     "default": true
   },
   "qa_match_mode": {
-    "description": "问题匹配模式：exact 精确匹配（消息与问题完全相同）/ contains 包含匹配（问题出现在消息中）",
+    "description": "问题匹配模式：exact 精确匹配（消息与问题完全相同）/ contains 包含匹配（问题出现在消息中）/ regex 正则匹配（问题作为正则表达式）/ fuzzy 模糊匹配（相似度达到阈值即命中）",
     "type": "string",
     "default": "contains"
+  },
+  "qa_fuzzy_threshold": {
+    "description": "模糊匹配相似度阈值（0.1~1.0），消息与问题相似度达到该值即命中，非法值回退默认 0.85",
+    "type": "float",
+    "default": 0.85
+  },
+  "qa_stats_enabled": {
+    "description": "是否记录问答命中统计（/问答 统计 查看 Top10 排行）",
+    "type": "bool",
+    "default": true
   },
   "qa_min_length": {
     "description": "问题最短长度，防止过短问题误触发回复",

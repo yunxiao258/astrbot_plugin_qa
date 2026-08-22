@@ -1,10 +1,10 @@
 # 自定义问答（astrbot_plugin_qa）
 
 - 作者：云晓
-- 版本：1.0.0
+- 版本：1.1.0
 - 许可证：MIT（详见 [LICENSE](LICENSE)）
 
-AstrBot 插件：自定义问答，关键词自动回复。发送 `/问答` 维护问答库，普通消息命中问题后自动回复对应答案。
+AstrBot 插件：自定义问答，关键词自动回复。发送 `/问答` 维护问答库，普通消息命中问题后自动回复对应答案。v1.1.0 新增正则/模糊匹配、图片回复、命中统计与批量导入导出。
 
 ## 功能
 
@@ -14,14 +14,22 @@ AstrBot 插件：自定义问答，关键词自动回复。发送 `/问答` 维�
 - `/问答 清空`：清空当前会话的所有问答
 - 普通消息自动回复：命中问题后自动回复对应答案，不打扰 LLM 会话
 - 防刷：同会话命中同一问题在冷却时间内不重复回复
+- **四种匹配模式**（v1.1.0）：`exact` 精确 / `contains` 包含 / `regex` 正则（问题作为正则表达式，非法正则自动跳过）/ `fuzzy` 模糊（相似度达到阈值即命中，阈值可配）
+- **图片回复**（v1.1.0）：答案中写 `[img]图片URL[/img]`，命中后自动发送图片；URL 非法时降级为原文文本
+- **命中统计**（v1.1.0）：每次命中自动计数并持久化（可关），`/问答 统计` 查看热门问答 Top10 排行
+- **导入导出**（v1.1.0）：`/问答 导出` 生成 JSON 文本，`/问答 导入 <JSON>` 批量迁移（重复/无效条目自动跳过，受会话上限保护）
 
 ## 指令
 
 | 指令 | 说明 |
 | --- | --- |
 | `/问答 添加 你好 = 你好呀` | 添加问答「你好 → 你好呀」 |
+| `/问答 添加 表情 = [img]https://example.com/cat.png[/img]` | 添加带图片回复的问答 |
 | `/问答 列表` | 列出当前会话问答 |
 | `/问答 删 2` | 删除编号为 2 的问答 |
+| `/问答 统计` | 查看命中排行 Top10（含次数与累计） |
+| `/问答 导出` | 导出当前会话问答为 JSON 文本 |
+| `/问答 导入 [{"q":"问题","a":"答案"}]` | 批量导入问答（重复/无效跳过） |
 | `/问答 清空` | 清空当前会话问答 |
 
 ## 配置
@@ -29,18 +37,20 @@ AstrBot 插件：自定义问答，关键词自动回复。发送 `/问答` 维�
 | 配置项 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
 | `qa_enable` | bool | true | 是否启用自动问答回复（总开关） |
-| `qa_match_mode` | string | contains | 匹配模式：`exact` 精确匹配 / `contains` 包含匹配 |
+| `qa_match_mode` | string | contains | 匹配模式：`exact` 精确 / `contains` 包含 / `regex` 正则 / `fuzzy` 模糊 |
+| `qa_fuzzy_threshold` | float | 0.85 | 模糊匹配相似度阈值（0.1~1.0），非法值回退默认 |
+| `qa_stats_enabled` | bool | true | 是否记录命中统计（关闭后不计数、不落盘） |
 | `qa_min_length` | int | 2 | 问题最短长度，防止过短问题误触发 |
 | `qa_reply_mode` | string | random | 多条命中时：`first` 取第一条 / `random` 随机取一条 |
 | `qa_cooldown_seconds` | int | 10 | 同会话命中同一问题的回复冷却间隔（秒） |
-| `qa_admin_only_manage` | bool | true | 添加/删除/清空是否仅管理员（`event.role == "admin"` 或 `admin_umos` 白名单） |
+| `qa_admin_only_manage` | bool | true | 管理操作是否仅管理员（`event.role == "admin"` 或 `admin_umos` 白名单） |
 | `admin_umos` | string | 空 | 管理员会话 UMO 白名单，英文逗号分隔 |
 | `qa_global_shared` | bool | false | 是否全局共享同一份问答库（默认按会话/群隔离） |
 | `qa_max_per_session` | int | 100 | 每个会话的最大问答条数，超限拒绝添加 |
 
 ## 数据持久化
 
-问答数据保存于 AstrBot 的 `plugin_data/astrbot_plugin_qa/qa_data.json`。
+问答数据与命中统计保存于 AstrBot 的 `plugin_data/astrbot_plugin_qa/qa_data.json`（结构 `{"data": {...}, "stats": {...}}`）。
 数据文件损坏或格式异常时会自动重置为空库，不影响插件运行。
 
 ## 兼容性
