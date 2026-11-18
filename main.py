@@ -517,3 +517,11 @@ class QaPlugin(Star):
             "└ /问答 清空                清空当前会话问答\n"
             "添加后，会话内消息命中问题将自动回复对应答案。"
         )
+
+    async def terminate(self):
+        """插件卸载时保存问答库与命中统计"""
+        try:
+            if self._data or self._stats:
+                self._save()
+        except Exception:
+            pass
