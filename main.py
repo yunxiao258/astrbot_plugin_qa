@@ -24,7 +24,12 @@ from astrbot.api.star import Context, Star, register
 PLUGIN_NAME = "astrbot_plugin_qa"
 PLUGIN_AUTHOR = "云晓"
 PLUGIN_DESC = "自定义问答：关键词自动回复（正则/模糊匹配、图片回复、命中统计、导入导出）"
-PLUGIN_VERSION = "1.1.0"
+try:
+    from .hub_bridge import HUB_PROTOCOL_VERSION, emit_hub_event
+except ImportError:
+    from hub_bridge import HUB_PROTOCOL_VERSION, emit_hub_event
+
+PLUGIN_VERSION = "1.2.0"
 
 # 消息监听装饰器：不同 AstrBot 版本 API 不同，统一为监听所有消息
 if hasattr(filter, "on_message"):
@@ -44,6 +49,7 @@ EXPORT_MAX_CHARS = 3000
 
 @register(PLUGIN_NAME, PLUGIN_AUTHOR, PLUGIN_DESC, PLUGIN_VERSION)
 class QaPlugin(Star):
+    HUB_PROTOCOL_VERSION = HUB_PROTOCOL_VERSION
     """自定义问答：关键词自动回复"""
 
     def __init__(self, context: Context, config: AstrBotConfig = None, data_dir: str = None):
@@ -192,6 +198,7 @@ class QaPlugin(Star):
         ck = f"{session_key}|{item_id}"
         self._stats[ck] = self._stats.get(ck, 0) + 1
         self._save()
+        emit_hub_event(PLUGIN_NAME, "qa.matched", {"umo": session_key, "item_id": item_id}, self.context)
 
     # ========== 核心逻辑 ==========
 
@@ -365,6 +372,7 @@ class QaPlugin(Star):
         new_id = max([it["id"] for it in items], default=0) + 1
         items.append({"id": new_id, "q": q, "a": a})
         self._save()
+        emit_hub_event(PLUGIN_NAME, "qa.added", {"umo": key, "id": new_id, "question": q, "answer": a}, self.context)
         return event.chain_result([Plain(f"✅ 已添加问答 #{new_id}：{q} => {a}")])
 
     async def _cmd_del(self, event, args: str) -> None:
@@ -525,3 +533,34 @@ class QaPlugin(Star):
                 self._save()
         except Exception:
             pass
+
+    def hub_status(self) -> dict:
+        total_qa = sum(len(v) for v in self._data.values() if isinstance(v, list))
+        total_hits = sum(int(v) for v in self._stats.values() if isinstance(v, int))
+        return {
+            "version": PLUGIN_VERSION,
+            "status": "online",
+            "metrics": {"会话数": len(self._data), "问答总数": total_qa, "累计命中": total_hits},
+            "actions": ["list_qa", "add_qa"],
+        }
+
+    async def hub_action(self, action: str, params: dict | None = None) -> dict:
+        p = params or {}
+        if action == "list_qa":
+            umo = str(p.get("umo", "")).strip()
+            if umo:
+                return {"ok": True, "data": {"umo": umo, "items": list(self._data.get(umo, []))}}
+            return {"ok": True, "data": {"sessions": len(self._data), "total": sum(len(v) for v in self._data.values() if isinstance(v, list))}}
+        if action == "add_qa":
+            umo = str(p.get("umo", "__global__")).strip() or "__global__"
+            q = str(p.get("question", "")).strip()
+            a = str(p.get("answer", "")).strip()
+            if not q or not a:
+                return {"ok": False, "error": "缺少 question 或 answer"}
+            items = self._data.setdefault(umo, [])
+            nid = max([it.get("id", 0) for it in items], default=0) + 1
+            rec = {"id": nid, "q": q, "a": a}
+            items.append(rec)
+            self._save()
+            return {"ok": True, "data": rec}
+        return {"ok": False, "error": f"不支持的动作：{action}"}
